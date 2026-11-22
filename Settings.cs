@@ -17,6 +17,7 @@ namespace Voltrix
         ComboBox themeBox;
         ChoiceBar fontBar;
         SwatchBar accent;
+        System.Collections.Generic.List<VButton> hotkeyButtons = new System.Collections.Generic.List<VButton>();
 
         public SettingsHost()
         {
@@ -27,7 +28,45 @@ namespace Voltrix
             AddToggle("Show the start-up screen", AppState.ShowSplash, delegate(bool on) { AppState.ShowSplash = on; SettingsStore.Save(); });
             AddToggle("Apply my active profile when the app starts", AppState.ReapplyProfile, delegate(bool on) { AppState.ReapplyProfile = on; SettingsStore.Save(); });
             AddToggle("Refresh the device list every 30 seconds", AppState.AutoRescan, delegate(bool on) { AppState.AutoRescan = on; SettingsStore.Save(); });
-            AddToggle("Overlay hotkeys (Ctrl+Alt+H HUD, Ctrl+Alt+C crosshair)", AppState.OverlayHotkeys, delegate(bool on) { AppState.OverlayHotkeys = on; SettingsStore.Save(); });
+            AddToggle("Ask before closing the app", AppState.ConfirmExit, delegate(bool on) { AppState.ConfirmExit = on; SettingsStore.Save(); });
+            AddToggle("Keep the window on top of other windows", AppState.AlwaysOnTop, delegate(bool on) { AppState.AlwaysOnTop = on; SettingsStore.Save(); AppState.RaiseSettingsChanged(); });
+            AddToggle("Remember the window size and position", AppState.RememberWindow, delegate(bool on) { AppState.RememberWindow = on; SettingsStore.Save(); });
+            AddToggle("Warn me if Logitech G HUB is running", AppState.GHubWarning, delegate(bool on) { AppState.GHubWarning = on; SettingsStore.Save(); });
+            Gap(10);
+
+            AddText("Shortcuts", Theme.Big, Theme.Text, 34);
+            AddText("These work anywhere, even in a game. Click one to change it.", Theme.Small, Theme.Muted, 22);
+            AddToggle("Shortcuts are on", AppState.OverlayHotkeys, delegate(bool on) { AppState.OverlayHotkeys = on; SettingsStore.Save(); });
+            foreach (HotkeyDef hd in Hotkeys.All)
+            {
+                HotkeyDef def = hd;
+                Label lab = new Label();
+                lab.Text = def.Label;
+                lab.Font = Theme.Body;
+                lab.ForeColor = Theme.Text;
+                lab.BackColor = Theme.Bg;
+                lab.TextAlign = ContentAlignment.MiddleLeft;
+                lab.SetBounds(X, y, 270, 40);
+                Controls.Add(lab);
+                VButton kb = AddButton(Hotkeys.Describe(def), false, X + 280, 220, null);
+                kb.Click += delegate(object sender, EventArgs e)
+                {
+                    ChangeHotkey(def, kb);
+                };
+                hotkeyButtons.Add(kb);
+                y += 46;
+            }
+            AddButton("Reset shortcuts to default", false, X, 240, delegate(object sender, EventArgs e)
+            {
+                Hotkeys.ResetAll();
+                SettingsStore.Save();
+                for (int i = 0; i < hotkeyButtons.Count; i++)
+                {
+                    hotkeyButtons[i].Text = Hotkeys.Describe(Hotkeys.All[i]);
+                    hotkeyButtons[i].Invalidate();
+                }
+            });
+            y += 52;
             Gap(10);
 
             AddText("Updates", Theme.Big, Theme.Text, 34);
@@ -90,6 +129,45 @@ namespace Voltrix
             AddText("Version " + AppInfo.Full + "\r\nUpdates come from github.com/" + Updater.Repo + "\r\nSettings and profiles: %APPDATA%\\VOLTRIX Hub", Theme.Small, Theme.Muted, 60);
             Done();
             UpdateInstallUi();
+        }
+
+        void ChangeHotkey(HotkeyDef def, VButton button)
+        {
+            Hotkeys.Capturing = true;
+            try
+            {
+                using (HotkeyDialog dlg = new HotkeyDialog(def.Label))
+                {
+                    if (dlg.ShowDialog(FindForm()) == DialogResult.OK)
+                    {
+                        if (dlg.Cleared)
+                        {
+                            def.Mods = 0;
+                            def.Vk = 0;
+                        }
+                        else
+                        {
+                            foreach (HotkeyDef other in Hotkeys.All)
+                            {
+                                if (other != def && other.Vk == dlg.Vk && other.Mods == dlg.Mods)
+                                {
+                                    MessageBox.Show("That shortcut is already used for: " + other.Label, AppInfo.Name);
+                                    return;
+                                }
+                            }
+                            def.Mods = dlg.Mods;
+                            def.Vk = dlg.Vk;
+                        }
+                        button.Text = Hotkeys.Describe(def);
+                        button.Invalidate();
+                        SettingsStore.Save();
+                    }
+                }
+            }
+            finally
+            {
+                Hotkeys.Capturing = false;
+            }
         }
 
         protected override void OnVisibleChanged(EventArgs e)
@@ -242,7 +320,9 @@ namespace Voltrix
 
         void DoLayout()
         {
-            host.SetBounds(24, 96, Math.Max(300, ClientSize.Width - 48), Math.Max(200, ClientSize.Height - 96 - 12));
+            int w = Math.Min(Math.Max(300, ClientSize.Width - 48), 620);
+            int x = Math.Max(24, (ClientSize.Width - w) / 2);
+            host.SetBounds(x, 96, w, Math.Max(200, ClientSize.Height - 96 - 12));
         }
 
         protected override void OnResize(EventArgs e)
@@ -254,7 +334,7 @@ namespace Voltrix
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            TextRenderer.DrawText(e.Graphics, "Settings", Theme.Title, new Rectangle(24, 24, 400, 50), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            TextRenderer.DrawText(e.Graphics, "Settings", Theme.Title, new Rectangle(Math.Max(24, (ClientSize.Width - Math.Min(Math.Max(300, ClientSize.Width - 48), 620)) / 2) + 16, 24, 400, 50), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
         }
     }
 }

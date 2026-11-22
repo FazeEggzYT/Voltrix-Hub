@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.1 pre-release: Logo, shortcuts and tidy-up
+- New logo (a lightning bolt) on the EXE file, the window, the tray, the sidebar and the start-up screen.
+- You can now change the app shortcuts: Settings > Shortcuts. Click one, press the new keys. 5 shortcuts: HUD, crosshair, show/hide window, pause key assignments, Game Mode.
+- The long device report is hidden. The Devices page shows just your devices and a short status. "Show details" brings the report back.
+- Devices page now uses the full width of the window.
+- Settings page is centred and has more options: ask before closing, keep window on top, remember window size and position, G HUB warning on/off, reset shortcuts.
+
 ## v0.9.0 pre-release: Overlay + Look
 - New start-up screen: logo, name, what it is doing, and the names of the devices it found.
 - New Overlay page with three tabs: HUD, Crosshair and FPS.

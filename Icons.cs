@@ -131,8 +131,42 @@ namespace Voltrix
         }
 
         // The VOLTRIX logo: a V with a bolt.
+        static Bitmap logoBmp;
+        static bool logoTried;
+
+        static Bitmap LoadLogo()
+        {
+            if (!logoTried)
+            {
+                logoTried = true;
+                try
+                {
+                    using (System.IO.Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Logo.png"))
+                    {
+                        if (s != null)
+                        {
+                            logoBmp = new Bitmap(s);
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    logoBmp = null;
+                }
+            }
+            return logoBmp;
+        }
+
         public static void DrawLogo(Graphics g, Rectangle r, Color c)
         {
+            Bitmap logo = LoadLogo();
+            if (logo != null)
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.DrawImage(logo, r);
+                return;
+            }
             g.SmoothingMode = SmoothingMode.AntiAlias;
             PointF[] v = new PointF[]
             {

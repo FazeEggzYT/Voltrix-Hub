@@ -22,6 +22,8 @@ namespace Voltrix
         DeviceCard mouse;
         VButton scanButton;
         VButton copyButton;
+        VButton detailsButton;
+        bool showDetails;
         TextBox log;
         Label scanState;
 
@@ -49,14 +51,22 @@ namespace Voltrix
             };
 
             scanButton = new VButton("Refresh devices", true);
+            detailsButton = new VButton("Show details", false);
+            detailsButton.Click += delegate(object sender, EventArgs e)
+            {
+                showDetails = !showDetails;
+                detailsButton.Text = showDetails ? "Hide details" : "Show details";
+                detailsButton.Invalidate();
+                DoLayout();
+            };
             scanButton.Click += delegate(object sender, EventArgs e) { RunScan(); };
-            copyButton = new VButton("Copy report", false);
+            copyButton = new VButton("Copy details", false);
             copyButton.Click += delegate(object sender, EventArgs e)
             {
                 if (log.Text.Length > 0)
                 {
                     Clipboard.SetText(log.Text);
-                    scanState.Text = "Report copied. Paste it to Claude.";
+                    scanState.Text = "Details copied.";
                 }
             };
 
@@ -65,7 +75,7 @@ namespace Voltrix
             scanState.BackColor = Theme.Bg;
             scanState.Font = Theme.Body;
             scanState.TextAlign = ContentAlignment.MiddleLeft;
-            scanState.Text = "The scan only reads. It changes nothing on your devices.";
+            scanState.Text = "";
 
             log = new TextBox();
             log.Multiline = true;
@@ -80,6 +90,7 @@ namespace Voltrix
             Controls.Add(mouse);
             Controls.Add(scanButton);
             Controls.Add(copyButton);
+            Controls.Add(detailsButton);
             Controls.Add(scanState);
             Controls.Add(log);
             DoLayout();
@@ -88,7 +99,7 @@ namespace Voltrix
         public void RunScan()
         {
             Cursor = Cursors.WaitCursor;
-            scanState.Text = "Looking for your devices...";
+            scanState.Text = "Refreshing...";
             scanState.Refresh();
             ScanResult r;
             try
@@ -110,13 +121,18 @@ namespace Voltrix
         public void ShowResult(ScanResult r)
         {
             log.Text = r.Report;
-            if (r.GHubRunning)
+            int count = (r.KeyboardName.Length > 0 ? 1 : 0) + (r.Mouse != null ? 1 : 0);
+            if (r.GHubRunning && AppState.GHubWarning)
             {
-                scanState.Text = "Logitech software is running. Close it before using VOLTRIX Hub.";
+                scanState.Text = "Logitech G HUB is running. Quit it from its tray icon if lighting or keys do not respond.";
+            }
+            else if (count == 0)
+            {
+                scanState.Text = "No devices found.";
             }
             else
             {
-                scanState.Text = r.Summary;
+                scanState.Text = count == 1 ? "1 device connected." : "2 devices connected.";
             }
             if (r.KeyboardName.Length > 0)
             {
@@ -124,7 +140,7 @@ namespace Voltrix
             }
             else if (r.FoundLogitech)
             {
-                keyboard.SetSubtitle("Logitech device found, but it needs a closer look. See the report below.");
+                keyboard.SetSubtitle("Logitech device found, but it could not be set up. Press Show details.");
             }
             else
             {
@@ -144,16 +160,20 @@ namespace Voltrix
 
         void DoLayout()
         {
-            int w = Math.Min(ClientSize.Width - 48, 900);
+            int w = Math.Min(ClientSize.Width - 48, 1200);
             if (w < 300) w = 300;
             int x = 24;
             keyboard.SetBounds(x, 96, w, 112);
             mouse.SetBounds(x, 96 + 112 + 16, w, 112);
-            int y = 96 + 112 + 16 + 112 + 16;
+            int y = 96 + 112 + 16 + 112 + 20;
             scanButton.SetBounds(x, y, 170, 40);
-            copyButton.SetBounds(x + 182, y, 140, 40);
-            scanState.SetBounds(x + 334, y, Math.Max(100, w - 334), 40);
+            detailsButton.SetBounds(x + 182, y, 150, 40);
+            copyButton.SetBounds(x + 344, y, 150, 40);
+            copyButton.Visible = showDetails;
+            int sx = showDetails ? x + 506 : x + 344;
+            scanState.SetBounds(sx, y, Math.Max(100, x + w - sx), 40);
             int ly = y + 52;
+            log.Visible = showDetails;
             log.SetBounds(x, ly, w, Math.Max(60, ClientSize.Height - ly - 20));
         }
 

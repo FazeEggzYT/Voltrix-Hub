@@ -6,7 +6,7 @@ if not exist "%CSC%" (
   echo Could not find the Windows C# compiler.
   exit /b 1
 )
-"%CSC%" /nologo /target:winexe /optimize+ /out:VOLTRIX-Hub.exe /resource:CHANGELOG.md,Changelog.md /reference:System.dll /reference:System.Core.dll /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll *.cs
+"%CSC%" /nologo /target:winexe /optimize+ /out:VOLTRIX-Hub.exe /win32icon:voltrix.ico /resource:voltrix.ico,AppIcon.ico /resource:voltrix-logo.png,Logo.png /resource:CHANGELOG.md,Changelog.md /reference:System.dll /reference:System.Core.dll /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll *.cs
 if errorlevel 1 (
   echo Build failed.
   if "%CI%"=="" pause

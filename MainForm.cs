@@ -47,6 +47,10 @@ namespace Voltrix
 
             appIcon = MakeIcon();
             Icon = appIcon;
+            LoadBounds();
+            TopMost = AppState.AlwaysOnTop;
+            AppState.SettingsChanged += delegate(object sender, EventArgs e) { TopMost = AppState.AlwaysOnTop; };
+            Hotkeys.Handler = RunHotkey;
 
             content = new Panel();
             content.Dock = DockStyle.Fill;
@@ -141,8 +145,101 @@ namespace Voltrix
             ShowPage(devicesPage);
         }
 
+        void LoadBounds()
+        {
+            if (!AppState.RememberWindow || AppState.WinBounds.Length == 0) return;
+            try
+            {
+                string[] p = AppState.WinBounds.Split(',');
+                if (p.Length < 4) return;
+                Rectangle r = new Rectangle(int.Parse(p[0]), int.Parse(p[1]), int.Parse(p[2]), int.Parse(p[3]));
+                bool onScreen = false;
+                foreach (Screen sc in Screen.AllScreens)
+                {
+                    Rectangle inter = Rectangle.Intersect(sc.WorkingArea, r);
+                    if (inter.Width > 200 && inter.Height > 150) onScreen = true;
+                }
+                if (!onScreen || r.Width < MinimumSize.Width || r.Height < MinimumSize.Height) return;
+                StartPosition = FormStartPosition.Manual;
+                Bounds = r;
+                if (p.Length > 4 && p[4] == "1")
+                {
+                    WindowState = FormWindowState.Maximized;
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        void SaveBounds()
+        {
+            try
+            {
+                if (WindowState == FormWindowState.Minimized) return;
+                Rectangle r = WindowState == FormWindowState.Normal ? Bounds : base.RestoreBounds;
+                AppState.WinBounds = r.X + "," + r.Y + "," + r.Width + "," + r.Height + "," + (WindowState == FormWindowState.Maximized ? "1" : "0");
+                SettingsStore.Save();
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        void RunHotkey(string id)
+        {
+            if (id == "hud")
+            {
+                Overlays.ToggleHud();
+            }
+            else if (id == "cross")
+            {
+                Overlays.ToggleCross();
+            }
+            else if (id == "window")
+            {
+                if (Visible && WindowState != FormWindowState.Minimized)
+                {
+                    Hide();
+                }
+                else
+                {
+                    RestoreFromTray();
+                }
+            }
+            else if (id == "assign")
+            {
+                AppState.AssignmentsOn = !AppState.AssignmentsOn;
+                SettingsStore.Save();
+                AppState.RaiseSettingsChanged();
+            }
+            else if (id == "game")
+            {
+                AppState.GameManual = !AppState.GameManual;
+                SettingsStore.Save();
+                if (watcher != null)
+                {
+                    watcher.Apply();
+                }
+                AppState.RaiseSettingsChanged();
+            }
+        }
+
         Icon MakeIcon()
         {
+            try
+            {
+                using (System.IO.Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("AppIcon.ico"))
+                {
+                    if (s != null)
+                    {
+                        return new Icon(s);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
             using (Bitmap bmp = new Bitmap(32, 32))
             {
                 using (Graphics g = Graphics.FromImage(bmp))
@@ -285,11 +382,23 @@ namespace Voltrix
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            if (AppState.RememberWindow && Visible)
+            {
+                SaveBounds();
+            }
             if (AppState.CloseToTray && !AppState.Exiting && e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
                 Hide();
                 return;
+            }
+            if (AppState.ConfirmExit && !AppState.Exiting && e.CloseReason == CloseReason.UserClosing)
+            {
+                if (MessageBox.Show("Close VOLTRIX Hub? Your key assignments and overlays will stop.", AppInfo.Name, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    return;
+                }
             }
             base.OnFormClosing(e);
         }

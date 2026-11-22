@@ -201,17 +201,16 @@ namespace Voltrix
                 return true;
             }
 
-            if (AppState.OverlayHotkeys && (vk == 0x48 || vk == 0x43)
-                && (GetAsyncKeyState(0x11) & 0x8000) != 0 && (GetAsyncKeyState(0x12) & 0x8000) != 0)
+            if (AppState.OverlayHotkeys && !Hotkeys.Capturing)
             {
-                swallowed.Add(vk);
-                bool hudKey = vk == 0x48;
-                sync.BeginInvoke(new MethodInvoker(delegate
+                HotkeyDef hk = Hotkeys.Match(vk);
+                if (hk != null)
                 {
-                    if (hudKey) Overlays.ToggleHud();
-                    else Overlays.ToggleCross();
-                }));
-                return true;
+                    swallowed.Add(vk);
+                    string hkId = hk.Id;
+                    sync.BeginInvoke(new MethodInvoker(delegate { Hotkeys.Fire(hkId); }));
+                    return true;
+                }
             }
 
             if (AppState.GameBlocking && IsBlocked(vk, altDown))

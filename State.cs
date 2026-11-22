@@ -91,6 +91,11 @@ namespace Voltrix
         public static bool AutoRescan = false;
         public static bool ReapplyProfile = true;
         public static bool OverlayHotkeys = true;
+        public static bool AlwaysOnTop = false;
+        public static bool RememberWindow = true;
+        public static string WinBounds = "";
+        public static bool ConfirmExit = false;
+        public static bool GHubWarning = true;
         public static bool HudOn = false;
         public static bool CrossOn = false;
         public static HudConfig Hud = new HudConfig();
@@ -183,6 +188,12 @@ namespace Voltrix
                     else if (key == "autoRescan") AppState.AutoRescan = Flag(val.Trim());
                     else if (key == "reapplyProfile") AppState.ReapplyProfile = Flag(val.Trim());
                     else if (key == "overlayHotkeys") AppState.OverlayHotkeys = Flag(val.Trim());
+                    else if (key == "alwaysOnTop") AppState.AlwaysOnTop = Flag(val.Trim());
+                    else if (key == "rememberWindow") AppState.RememberWindow = Flag(val.Trim());
+                    else if (key == "winBounds") AppState.WinBounds = val.Trim();
+                    else if (key == "confirmExit") AppState.ConfirmExit = Flag(val.Trim());
+                    else if (key == "ghubWarning") AppState.GHubWarning = Flag(val.Trim());
+                    else if (key.StartsWith("hk_")) Hotkeys.Set(key.Substring(3), val.Trim());
                     else if (key == "hudOn") AppState.HudOn = Flag(val.Trim());
                     else if (key == "crossOn") AppState.CrossOn = Flag(val.Trim());
                     else if (key == "hud") AppState.Hud = HudConfig.Parse(val);
@@ -265,6 +276,15 @@ namespace Voltrix
                 lines.Add("autoRescan=" + (AppState.AutoRescan ? "1" : "0"));
                 lines.Add("reapplyProfile=" + (AppState.ReapplyProfile ? "1" : "0"));
                 lines.Add("overlayHotkeys=" + (AppState.OverlayHotkeys ? "1" : "0"));
+                lines.Add("alwaysOnTop=" + (AppState.AlwaysOnTop ? "1" : "0"));
+                lines.Add("rememberWindow=" + (AppState.RememberWindow ? "1" : "0"));
+                lines.Add("winBounds=" + Clean(AppState.WinBounds));
+                lines.Add("confirmExit=" + (AppState.ConfirmExit ? "1" : "0"));
+                lines.Add("ghubWarning=" + (AppState.GHubWarning ? "1" : "0"));
+                foreach (HotkeyDef hd in Hotkeys.All)
+                {
+                    lines.Add("hk_" + hd.Id + "=" + hd.Mods + ":" + hd.Vk);
+                }
                 lines.Add("hudOn=" + (AppState.HudOn ? "1" : "0"));
                 lines.Add("crossOn=" + (AppState.CrossOn ? "1" : "0"));
                 lines.Add("hud=" + Clean(AppState.Hud.ToText()));
