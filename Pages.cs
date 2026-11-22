@@ -15,17 +15,21 @@ namespace Voltrix
         }
     }
 
-    // Devices page: a list of device cards.
+    // Devices page: a list of device cards and the scanner.
     class DevicesPage : Page
     {
         DeviceCard keyboard;
         DeviceCard mouse;
+        VButton scanButton;
+        VButton copyButton;
+        TextBox log;
+        Label scanState;
 
         public event EventHandler<CardEventArgs> OpenDevice;
 
         public DevicesPage()
         {
-            keyboard = new DeviceCard("PRO", "Logitech PRO keyboard. USB. Preview data: no device is connected yet.", true, true);
+            keyboard = new DeviceCard("PRO", "Logitech PRO keyboard. Press Scan to find it.", true, true);
             mouse = new DeviceCard("G502 HERO", "Mouse support is planned for a later version.", false, false);
             keyboard.Opened += delegate(object sender, CardEventArgs e)
             {
@@ -34,9 +38,83 @@ namespace Voltrix
                     OpenDevice(this, e);
                 }
             };
+
+            scanButton = new VButton("Scan for devices", true);
+            scanButton.Click += delegate(object sender, EventArgs e) { RunScan(); };
+            copyButton = new VButton("Copy report", false);
+            copyButton.Click += delegate(object sender, EventArgs e)
+            {
+                if (log.Text.Length > 0)
+                {
+                    Clipboard.SetText(log.Text);
+                    scanState.Text = "Report copied. Paste it to Claude.";
+                }
+            };
+
+            scanState = new Label();
+            scanState.ForeColor = Theme.Muted;
+            scanState.BackColor = Theme.Bg;
+            scanState.Font = Theme.Body;
+            scanState.TextAlign = ContentAlignment.MiddleLeft;
+            scanState.Text = "The scan only reads. It changes nothing on your devices.";
+
+            log = new TextBox();
+            log.Multiline = true;
+            log.ReadOnly = true;
+            log.ScrollBars = ScrollBars.Vertical;
+            log.BorderStyle = BorderStyle.None;
+            log.BackColor = Theme.Panel;
+            log.ForeColor = Theme.Text;
+            log.Font = new Font("Consolas", 9f);
+
             Controls.Add(keyboard);
             Controls.Add(mouse);
+            Controls.Add(scanButton);
+            Controls.Add(copyButton);
+            Controls.Add(scanState);
+            Controls.Add(log);
             DoLayout();
+        }
+
+        public void RunScan()
+        {
+            Cursor = Cursors.WaitCursor;
+            scanState.Text = "Scanning...";
+            scanState.Refresh();
+            ScanResult r;
+            try
+            {
+                r = Scanner.Scan();
+            }
+            catch (Exception ex)
+            {
+                r = new ScanResult();
+                r.Summary = "Scan failed: " + ex.Message;
+                r.Report = r.Summary;
+            }
+            AppState.Last = r;
+            log.Text = r.Report;
+            if (r.GHubRunning)
+            {
+                scanState.Text = "Logitech software is running. Close it before using VOLTRIX Hub.";
+            }
+            else
+            {
+                scanState.Text = r.Summary;
+            }
+            if (r.FoundLogitech && r.Summary.StartsWith("Found: "))
+            {
+                keyboard.SetSubtitle(r.Summary.Substring(7) + ". Connected over USB.");
+            }
+            else if (r.FoundLogitech)
+            {
+                keyboard.SetSubtitle("Logitech device found, but it needs a closer look. See the report below.");
+            }
+            else
+            {
+                keyboard.SetSubtitle("Not found. Plug in the keyboard and press Scan.");
+            }
+            Cursor = Cursors.Default;
         }
 
         void DoLayout()
@@ -46,6 +124,12 @@ namespace Voltrix
             int x = 24;
             keyboard.SetBounds(x, 96, w, 112);
             mouse.SetBounds(x, 96 + 112 + 16, w, 112);
+            int y = 96 + 112 + 16 + 112 + 16;
+            scanButton.SetBounds(x, y, 170, 40);
+            copyButton.SetBounds(x + 182, y, 140, 40);
+            scanState.SetBounds(x + 334, y, Math.Max(100, w - 334), 40);
+            int ly = y + 52;
+            log.SetBounds(x, ly, w, Math.Max(60, ClientSize.Height - ly - 20));
         }
 
         protected override void OnResize(EventArgs e)
@@ -69,6 +153,7 @@ namespace Voltrix
         IconButton tabAssign;
         IconButton tabGame;
         string currentTab = "light";
+        LightingPanel lighting;
 
         public event EventHandler BackClicked;
 
@@ -92,6 +177,9 @@ namespace Voltrix
             Controls.Add(tabLight);
             Controls.Add(tabAssign);
             Controls.Add(tabGame);
+            lighting = new LightingPanel();
+            Controls.Add(lighting);
+            AppState.LightChanged += delegate(object sender, EventArgs e) { Invalidate(); };
             SelectTab("light");
             DoLayout();
         }
@@ -102,6 +190,7 @@ namespace Voltrix
             tabLight.Selected = tab == "light";
             tabAssign.Selected = tab == "assign";
             tabGame.Selected = tab == "game";
+            lighting.Visible = tab == "light";
             Invalidate();
         }
 
@@ -111,6 +200,7 @@ namespace Voltrix
             tabLight.Location = new Point(16, 90);
             tabAssign.Location = new Point(16, 148);
             tabGame.Location = new Point(16, 206);
+            lighting.SetBounds(80, 90, 320, Math.Max(200, ClientSize.Height - 120));
         }
 
         protected override void OnResize(EventArgs e)
@@ -133,14 +223,27 @@ namespace Voltrix
             TextRenderer.DrawText(g, "PRO", Theme.Title, new Rectangle(76, 12, 400, 50), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
 
             Rectangle panel = new Rectangle(80, 90, 320, Math.Max(200, ClientSize.Height - 120));
-            Theme.FillRound(g, panel, 14, Theme.Panel, Theme.Border);
-            TextRenderer.DrawText(g, TabName(), Theme.Big, new Rectangle(panel.X + 16, panel.Y + 14, panel.Width - 32, 36), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            TextRenderer.DrawText(g, "This screen arrives in the next version (v0.1.1).", Theme.Body, new Rectangle(panel.X + 16, panel.Y + 60, panel.Width - 32, 60), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
+            if (currentTab != "light")
+            {
+                Theme.FillRound(g, panel, 14, Theme.Panel, Theme.Border);
+                TextRenderer.DrawText(g, TabName(), Theme.Big, new Rectangle(panel.X + 16, panel.Y + 14, panel.Width - 32, 36), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+                TextRenderer.DrawText(g, "This screen arrives in a later version.", Theme.Body, new Rectangle(panel.X + 16, panel.Y + 60, panel.Width - 32, 60), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
+            }
 
             int bx = panel.Right + 20;
             Rectangle board = new Rectangle(bx, 90, Math.Max(200, ClientSize.Width - bx - 24), 300);
             Theme.FillRound(g, board, 14, Color.FromArgb(236, 236, 236), Color.Empty);
-            TextRenderer.DrawText(g, "Keyboard picture arrives in v0.1.1", Theme.Bold, board, Color.FromArgb(90, 90, 90), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            if (currentTab == "light")
+            {
+                Rectangle glow = new Rectangle(board.X + 24, board.Y + 24, board.Width - 48, board.Height - 48);
+                Theme.FillRound(g, glow, 12, AppState.LightColor, Color.Empty);
+                Color label = (AppState.LightColor.GetBrightness() > 0.6f) ? Color.FromArgb(30, 30, 30) : Color.White;
+                TextRenderer.DrawText(g, "Preview: all keys", Theme.Bold, glow, label, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
+            else
+            {
+                TextRenderer.DrawText(g, "Keyboard picture arrives in a later version", Theme.Bold, board, Color.FromArgb(90, 90, 90), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            }
         }
     }
 

@@ -3,7 +3,7 @@ namespace Voltrix
     static class AppInfo
     {
         public const string Name = "VOLTRIX Hub";
-        public const string Version = "0.1.0";
+        public const string Version = "0.3.0";
         public const string Channel = "pre-release";
 
         public static string Full

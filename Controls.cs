@@ -167,6 +167,12 @@ namespace Voltrix
             }
         }
 
+        public void SetSubtitle(string text)
+        {
+            subtitle = text;
+            Invalidate();
+        }
+
         Rectangle LightingRect()
         {
             return new Rectangle(Width - 16 - 46 * 2 - 8, (Height - 46) / 2, 46, 46);

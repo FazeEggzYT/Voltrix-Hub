@@ -35,6 +35,7 @@ namespace Voltrix
             Font = Theme.Body;
             DoubleBuffered = true;
 
+            SettingsStore.Load();
             appIcon = MakeIcon();
             Icon = appIcon;
 
@@ -63,6 +64,7 @@ namespace Voltrix
             };
 
             BuildTray();
+            Shown += delegate(object sender, EventArgs e) { devicesPage.RunScan(); };
             SelectNav(navDevices);
             ShowPage(devicesPage);
         }
