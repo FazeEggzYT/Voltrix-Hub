@@ -1,0 +1,25 @@
+name: Build release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Build the EXE
+        shell: cmd
+        run: build.bat
+
+      - name: Attach the EXE to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" VOLTRIX-Hub.exe --clobber --repo "${{ github.repository }}"
