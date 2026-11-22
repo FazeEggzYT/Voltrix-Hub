@@ -26,11 +26,20 @@ namespace Voltrix
         Label scanState;
 
         public event EventHandler<CardEventArgs> OpenDevice;
+        public event EventHandler OpenMouse;
 
         public DevicesPage()
         {
             keyboard = new DeviceCard("PRO", "Logitech PRO keyboard. Press Scan to find it.", true, true);
-            mouse = new DeviceCard("G502 HERO", "Mouse support is planned for a later version.", false, false);
+            mouse = new DeviceCard("G502 HERO", "Logitech G502 HERO mouse. Press Scan to find it.", false, false);
+            mouse.ShowQuick = false;
+            mouse.Opened += delegate(object sender, CardEventArgs e)
+            {
+                if (OpenMouse != null)
+                {
+                    OpenMouse(this, EventArgs.Empty);
+                }
+            };
             keyboard.Opened += delegate(object sender, CardEventArgs e)
             {
                 if (OpenDevice != null)
@@ -102,9 +111,9 @@ namespace Voltrix
             {
                 scanState.Text = r.Summary;
             }
-            if (r.FoundLogitech && r.Summary.StartsWith("Found: "))
+            if (r.KeyboardName.Length > 0)
             {
-                keyboard.SetSubtitle(r.Summary.Substring(7) + ". Connected over USB.");
+                keyboard.SetSubtitle(r.KeyboardName + ". Connected over USB.");
             }
             else if (r.FoundLogitech)
             {
@@ -113,6 +122,16 @@ namespace Voltrix
             else
             {
                 keyboard.SetSubtitle("Not found. Plug in the keyboard and press Scan.");
+            }
+            if (r.Mouse != null)
+            {
+                mouse.SetEnabled(true);
+                mouse.SetSubtitle(r.MouseName + ". Connected over USB." + (r.MouseDpi > 0 ? " Current DPI " + r.MouseDpi + "." : ""));
+            }
+            else
+            {
+                mouse.SetEnabled(false);
+                mouse.SetSubtitle("Not found. Plug in the mouse and press Scan.");
             }
             Cursor = Cursors.Default;
         }
@@ -154,6 +173,8 @@ namespace Voltrix
         IconButton tabGame;
         string currentTab = "light";
         LightingPanel lighting;
+        AssignPanel assign;
+        GamePanel game;
 
         public event EventHandler BackClicked;
 
@@ -179,6 +200,10 @@ namespace Voltrix
             Controls.Add(tabGame);
             lighting = new LightingPanel();
             Controls.Add(lighting);
+            assign = new AssignPanel();
+            Controls.Add(assign);
+            game = new GamePanel();
+            Controls.Add(game);
             AppState.LightChanged += delegate(object sender, EventArgs e) { Invalidate(); };
             SelectTab("light");
             DoLayout();
@@ -191,6 +216,8 @@ namespace Voltrix
             tabAssign.Selected = tab == "assign";
             tabGame.Selected = tab == "game";
             lighting.Visible = tab == "light";
+            assign.Visible = tab == "assign";
+            game.Visible = tab == "game";
             Invalidate();
         }
 
@@ -201,6 +228,9 @@ namespace Voltrix
             tabAssign.Location = new Point(16, 148);
             tabGame.Location = new Point(16, 206);
             lighting.SetBounds(80, 90, 320, Math.Max(200, ClientSize.Height - 120));
+            int wide = Math.Max(300, Math.Min(ClientSize.Width - 104, 640));
+            assign.SetBounds(80, 90, wide, Math.Max(300, ClientSize.Height - 120));
+            game.SetBounds(80, 90, wide, Math.Max(300, ClientSize.Height - 120));
         }
 
         protected override void OnResize(EventArgs e)
@@ -223,26 +253,15 @@ namespace Voltrix
             TextRenderer.DrawText(g, "PRO", Theme.Title, new Rectangle(76, 12, 400, 50), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
 
             Rectangle panel = new Rectangle(80, 90, 320, Math.Max(200, ClientSize.Height - 120));
-            if (currentTab != "light")
-            {
-                Theme.FillRound(g, panel, 14, Theme.Panel, Theme.Border);
-                TextRenderer.DrawText(g, TabName(), Theme.Big, new Rectangle(panel.X + 16, panel.Y + 14, panel.Width - 32, 36), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-                TextRenderer.DrawText(g, "This screen arrives in a later version.", Theme.Body, new Rectangle(panel.X + 16, panel.Y + 60, panel.Width - 32, 60), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
-            }
-
-            int bx = panel.Right + 20;
-            Rectangle board = new Rectangle(bx, 90, Math.Max(200, ClientSize.Width - bx - 24), 300);
-            Theme.FillRound(g, board, 14, Color.FromArgb(236, 236, 236), Color.Empty);
             if (currentTab == "light")
             {
+                int bx = panel.Right + 20;
+                Rectangle board = new Rectangle(bx, 90, Math.Max(200, ClientSize.Width - bx - 24), 300);
+                Theme.FillRound(g, board, 14, Color.FromArgb(236, 236, 236), Color.Empty);
                 Rectangle glow = new Rectangle(board.X + 24, board.Y + 24, board.Width - 48, board.Height - 48);
                 Theme.FillRound(g, glow, 12, AppState.LightColor, Color.Empty);
                 Color label = (AppState.LightColor.GetBrightness() > 0.6f) ? Color.FromArgb(30, 30, 30) : Color.White;
                 TextRenderer.DrawText(g, "Preview: all keys", Theme.Bold, glow, label, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-            }
-            else
-            {
-                TextRenderer.DrawText(g, "Keyboard picture arrives in a later version", Theme.Bold, board, Color.FromArgb(90, 90, 90), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
         }
     }

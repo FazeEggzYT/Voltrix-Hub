@@ -5,9 +5,24 @@ using System.Text;
 
 namespace Voltrix
 {
+    // One device interface that answered HID++.
+    class DeviceLink
+    {
+        public string Path = "";
+        public int Len;
+        public string Name = "";
+        public ushort Pid;
+        public bool IsMouse;
+    }
+
     // What a scan found.
     class ScanResult
     {
+        public List<DeviceLink> Links = new List<DeviceLink>();
+        public DeviceLink Mouse;
+        public string KeyboardName = "";
+        public string MouseName = "";
+        public int MouseDpi;
         public string Report = "";
         public string Summary = "";
         public bool FoundLogitech;
@@ -106,14 +121,31 @@ namespace Voltrix
                     {
                         sb.AppendLine("  Probe error: " + ex.Message);
                     }
-                    if (name.Length > 0 && bestName.Length == 0)
+                    if (link.Answered)
                     {
-                        bestName = name;
-                    }
-                    if (link.Answered && res.LinkPath.Length == 0)
-                    {
-                        res.LinkPath = h.Path;
-                        res.LinkLen = h.OutputLen;
+                        DeviceLink dl = new DeviceLink();
+                        dl.Path = h.Path;
+                        dl.Len = h.OutputLen;
+                        dl.Pid = h.Pid;
+                        dl.Name = name.Length > 0 ? name : h.Product;
+                        string probe = (dl.Name + " " + h.Product).ToLower();
+                        dl.IsMouse = h.Pid == 0xC08B || probe.Contains("502") || probe.Contains("mouse");
+                        res.Links.Add(dl);
+                        if (dl.IsMouse)
+                        {
+                            if (res.Mouse == null)
+                            {
+                                res.Mouse = dl;
+                                res.MouseName = dl.Name;
+                            }
+                        }
+                        else if (res.LinkPath.Length == 0)
+                        {
+                            res.LinkPath = h.Path;
+                            res.LinkLen = h.OutputLen;
+                            res.KeyboardName = dl.Name;
+                            bestName = dl.Name;
+                        }
                     }
                 }
                 finally
@@ -124,7 +156,11 @@ namespace Voltrix
 
             if (bestName.Length > 0)
             {
-                res.Summary = "Found: " + bestName;
+                res.Summary = "Found: " + bestName + (res.MouseName.Length > 0 ? " and " + res.MouseName : "");
+            }
+            else if (res.MouseName.Length > 0)
+            {
+                res.Summary = "Found: " + res.MouseName;
             }
             else
             {
@@ -220,6 +256,17 @@ namespace Voltrix
                     }
                 }
             }
+            int idxDpi = link.FeatureIndex(0x2201);
+            if (idxDpi > 0)
+            {
+                byte[] d = link.Ask((byte)idxDpi, 0x02, new byte[] { 0x00 });
+                if (d != null && !link.IsError(d) && d.Length > 6)
+                {
+                    int dpi = (d[5] << 8) | d[6];
+                    res.MouseDpi = dpi;
+                    sb.AppendLine("  Current DPI: " + dpi);
+                }
+            }
             return name;
         }
 
@@ -235,7 +282,10 @@ namespace Voltrix
                 case 0x1004: return "Battery (unified)";
                 case 0x1B04: return "Reprogrammable keys";
                 case 0x4521: return "Disable keys";
+                case 0x2201: return "Adjustable DPI";
                 case 0x4522: return "Game mode";
+                case 0x8060: return "Report rate";
+                case 0x8061: return "Extended report rate";
                 case 0x8010: return "G-keys";
                 case 0x8020: return "M-keys";
                 case 0x8030: return "MR key";

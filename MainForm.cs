@@ -15,10 +15,14 @@ namespace Voltrix
         NavButton navSettings;
         DevicesPage devicesPage;
         DevicePage devicePage;
-        PlaceholderPage profilesPage;
-        PlaceholderPage updatesPage;
-        PlaceholderPage settingsPage;
+        MousePage mousePage;
+        ProfilesPage profilesPage;
+        UpdatesPage updatesPage;
+        SettingsPage settingsPage;
+        Label versionLabel;
         NotifyIcon tray;
+        ToolStripMenuItem pauseItem;
+        GameWatcher watcher;
         Icon appIcon;
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -48,10 +52,20 @@ namespace Voltrix
 
             devicesPage = new DevicesPage();
             devicePage = new DevicePage();
-            profilesPage = new PlaceholderPage("Profiles", "Profiles arrive in a later version. They will hold your lighting, key assignments and macros.");
-            updatesPage = new PlaceholderPage("Updates", "VOLTRIX Hub " + AppInfo.Full + "\r\nThe auto-updater and changelog arrive in a later version.");
-            settingsPage = new PlaceholderPage("Settings", "Settings arrive in a later version.");
+            mousePage = new MousePage();
+            profilesPage = new ProfilesPage();
+            updatesPage = new UpdatesPage();
+            settingsPage = new SettingsPage();
 
+            devicesPage.OpenMouse += delegate(object sender, EventArgs e)
+            {
+                ShowPage(mousePage);
+            };
+            mousePage.BackClicked += delegate(object sender, EventArgs e)
+            {
+                SelectNav(navDevices);
+                ShowPage(devicesPage);
+            };
             devicesPage.OpenDevice += delegate(object sender, CardEventArgs e)
             {
                 devicePage.SelectTab(e.Tab);
@@ -64,7 +78,35 @@ namespace Voltrix
             };
 
             BuildTray();
-            Shown += delegate(object sender, EventArgs e) { devicesPage.RunScan(); };
+            watcher = new GameWatcher();
+            AppState.Watcher = watcher;
+            Updater.Init(this);
+            Updater.Checked += delegate(object sender, EventArgs e)
+            {
+                versionLabel.Text = Updater.Latest != null ? "Update available: " + Updater.Latest.Version : "Version " + AppInfo.Full;
+            };
+            Shown += delegate(object sender, EventArgs e)
+            {
+                KeyHook.Install(this);
+                watcher.Start();
+                devicesPage.RunScan();
+                if (AppState.ActiveProfile.Length > 0)
+                {
+                    Profile ap = ProfileStore.Load(AppState.ActiveProfile);
+                    if (ap != null)
+                    {
+                        ProfileApply.Apply(ap, false);
+                    }
+                }
+                if (AppState.CheckOnStart)
+                {
+                    Updater.CheckAsync();
+                }
+                if (AppState.StartMinimised)
+                {
+                    Hide();
+                }
+            };
             SelectNav(navDevices);
             ShowPage(devicesPage);
         }
@@ -95,6 +137,7 @@ namespace Voltrix
             sidebar.BackColor = Theme.Panel;
 
             Label version = new Label();
+            versionLabel = version;
             version.Dock = DockStyle.Bottom;
             version.Height = 44;
             version.TextAlign = ContentAlignment.MiddleLeft;
@@ -167,7 +210,20 @@ namespace Voltrix
             open.Click += delegate(object sender, EventArgs e) { RestoreFromTray(); };
             ToolStripMenuItem exit = new ToolStripMenuItem("Exit");
             exit.Click += delegate(object sender, EventArgs e) { Close(); };
+            pauseItem = new ToolStripMenuItem(AppState.AssignmentsOn ? "Pause key assignments" : "Resume key assignments");
+            pauseItem.Click += delegate(object sender, EventArgs e)
+            {
+                AppState.AssignmentsOn = !AppState.AssignmentsOn;
+                pauseItem.Text = AppState.AssignmentsOn ? "Pause key assignments" : "Resume key assignments";
+                SettingsStore.Save();
+                AppState.RaiseSettingsChanged();
+            };
+            AppState.SettingsChanged += delegate(object sender, EventArgs e)
+            {
+                pauseItem.Text = AppState.AssignmentsOn ? "Pause key assignments" : "Resume key assignments";
+            };
             menu.Items.Add(open);
+            menu.Items.Add(pauseItem);
             menu.Items.Add(exit);
 
             tray = new NotifyIcon();
@@ -196,6 +252,11 @@ namespace Voltrix
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            KeyHook.Uninstall();
+            if (watcher != null)
+            {
+                watcher.Stop();
+            }
             if (tray != null)
             {
                 tray.Visible = false;

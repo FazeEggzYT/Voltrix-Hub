@@ -151,6 +151,7 @@ namespace Voltrix
         bool isKeyboard;
         bool enabledCard;
         bool hover;
+        public bool ShowQuick = true;
 
         public event EventHandler<CardEventArgs> Opened;
 
@@ -165,6 +166,13 @@ namespace Voltrix
             {
                 Cursor = Cursors.Hand;
             }
+        }
+
+        public void SetEnabled(bool on)
+        {
+            enabledCard = on;
+            Cursor = on ? Cursors.Hand : Cursors.Default;
+            Invalidate();
         }
 
         public void SetSubtitle(string text)
@@ -204,11 +212,11 @@ namespace Voltrix
             {
                 return;
             }
-            if (LightingRect().Contains(e.Location))
+            if (ShowQuick && LightingRect().Contains(e.Location))
             {
                 Opened(this, new CardEventArgs("light"));
             }
-            else if (GameRect().Contains(e.Location))
+            else if (ShowQuick && GameRect().Contains(e.Location))
             {
                 Opened(this, new CardEventArgs("game"));
             }
@@ -239,7 +247,7 @@ namespace Voltrix
             TextRenderer.DrawText(g, title, Theme.Big, new Rectangle(206, 22, Width - 206 - 130, 32), titleColor, TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
             TextRenderer.DrawText(g, subtitle, Theme.Body, new Rectangle(206, 56, Width - 206 - 130, 40), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);
 
-            if (enabledCard)
+            if (enabledCard && ShowQuick)
             {
                 Rectangle l = LightingRect();
                 Rectangle m = GameRect();
