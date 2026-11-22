@@ -67,6 +67,7 @@ namespace Voltrix
     {
         public static ScanResult Last;
         public static GameWatcher Watcher;
+        public static bool Exiting = false;
         public static Color LightColor = Color.FromArgb(41, 171, 226);
         public static bool AssignmentsOn = true;
         public static bool GameManual = false;
@@ -82,6 +83,21 @@ namespace Voltrix
         public static bool PreRelease = true;
         public static bool StartMinimised = false;
         public static string ActiveProfile = "";
+        public static string ThemeName = "Voltrix Blue";
+        public static Color AccentColor = Color.FromArgb(41, 171, 226);
+        public static string UiFont = "Segoe UI";
+        public static bool ShowSplash = true;
+        public static bool CloseToTray = false;
+        public static bool AutoRescan = false;
+        public static bool ReapplyProfile = true;
+        public static bool OverlayHotkeys = true;
+        public static bool HudOn = false;
+        public static bool CrossOn = false;
+        public static HudConfig Hud = new HudConfig();
+        public static CrossConfig Cross = new CrossConfig();
+        public static string[] HudSlots = new string[] { "", "", "" };
+        public static string[] CrossSlots = new string[] { "", "", "" };
+        public static DateTime GameStart = DateTime.MinValue;
         public static List<Assignment> Assignments = new List<Assignment>();
         public static List<GameEntry> Games = new List<GameEntry>();
 
@@ -156,6 +172,27 @@ namespace Voltrix
                     else if (key == "preRelease") AppState.PreRelease = Flag(val.Trim());
                     else if (key == "startMinimised") AppState.StartMinimised = Flag(val.Trim());
                     else if (key == "activeProfile") AppState.ActiveProfile = val.Trim();
+                    else if (key == "theme") AppState.ThemeName = val.Trim();
+                    else if (key == "uiFont") AppState.UiFont = val.Trim();
+                    else if (key == "accent")
+                    {
+                        if (int.TryParse(val.Trim(), out n)) AppState.AccentColor = Color.FromArgb(255, Color.FromArgb(n));
+                    }
+                    else if (key == "showSplash") AppState.ShowSplash = Flag(val.Trim());
+                    else if (key == "closeToTray") AppState.CloseToTray = Flag(val.Trim());
+                    else if (key == "autoRescan") AppState.AutoRescan = Flag(val.Trim());
+                    else if (key == "reapplyProfile") AppState.ReapplyProfile = Flag(val.Trim());
+                    else if (key == "overlayHotkeys") AppState.OverlayHotkeys = Flag(val.Trim());
+                    else if (key == "hudOn") AppState.HudOn = Flag(val.Trim());
+                    else if (key == "crossOn") AppState.CrossOn = Flag(val.Trim());
+                    else if (key == "hud") AppState.Hud = HudConfig.Parse(val);
+                    else if (key == "cross") AppState.Cross = CrossConfig.Parse(val);
+                    else if (key == "hudSlot1") AppState.HudSlots[0] = val;
+                    else if (key == "hudSlot2") AppState.HudSlots[1] = val;
+                    else if (key == "hudSlot3") AppState.HudSlots[2] = val;
+                    else if (key == "crossSlot1") AppState.CrossSlots[0] = val;
+                    else if (key == "crossSlot2") AppState.CrossSlots[1] = val;
+                    else if (key == "crossSlot3") AppState.CrossSlots[2] = val;
                     else if (key == "dpi")
                     {
                         if (int.TryParse(val.Trim(), out n) && n >= 100 && n <= 25600) AppState.Dpi = n;
@@ -220,6 +257,23 @@ namespace Voltrix
                 lines.Add("preRelease=" + (AppState.PreRelease ? "1" : "0"));
                 lines.Add("startMinimised=" + (AppState.StartMinimised ? "1" : "0"));
                 lines.Add("activeProfile=" + Clean(AppState.ActiveProfile));
+                lines.Add("theme=" + Clean(AppState.ThemeName));
+                lines.Add("uiFont=" + Clean(AppState.UiFont));
+                lines.Add("accent=" + AppState.AccentColor.ToArgb());
+                lines.Add("showSplash=" + (AppState.ShowSplash ? "1" : "0"));
+                lines.Add("closeToTray=" + (AppState.CloseToTray ? "1" : "0"));
+                lines.Add("autoRescan=" + (AppState.AutoRescan ? "1" : "0"));
+                lines.Add("reapplyProfile=" + (AppState.ReapplyProfile ? "1" : "0"));
+                lines.Add("overlayHotkeys=" + (AppState.OverlayHotkeys ? "1" : "0"));
+                lines.Add("hudOn=" + (AppState.HudOn ? "1" : "0"));
+                lines.Add("crossOn=" + (AppState.CrossOn ? "1" : "0"));
+                lines.Add("hud=" + Clean(AppState.Hud.ToText()));
+                lines.Add("cross=" + Clean(AppState.Cross.ToText()));
+                for (int i = 0; i < 3; i++)
+                {
+                    lines.Add("hudSlot" + (i + 1) + "=" + Clean(AppState.HudSlots[i]));
+                    lines.Add("crossSlot" + (i + 1) + "=" + Clean(AppState.CrossSlots[i]));
+                }
                 lines.Add("dpi=" + AppState.Dpi);
                 lines.Add("rateMs=" + AppState.RateMs);
                 foreach (Assignment a in AppState.Assignments)

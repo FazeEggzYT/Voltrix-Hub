@@ -61,6 +61,13 @@ namespace Voltrix
             {
                 Theme.FillRound(g, new Rectangle(0, 0, Width, Height), 8, Color.FromArgb(24, 30, 40), Color.Empty);
             }
+            if (selected)
+            {
+                using (SolidBrush bar = new SolidBrush(Theme.Accent))
+                {
+                    g.FillRectangle(bar, 0, 10, 3, Height - 20);
+                }
+            }
             Color c = selected ? Theme.Accent : Theme.Muted;
             Icons.Draw(g, icon, new Rectangle(14, (Height - 22) / 2, 22, 22), c);
             TextRenderer.DrawText(g, Text, Theme.Bold, new Rectangle(46, 0, Width - 46, Height), selected ? Theme.Text : Theme.Muted, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
@@ -243,6 +250,12 @@ namespace Voltrix
                 Icons.DrawMiniMouse(g, pic, Theme.Muted);
             }
 
+            bool connected = subtitle.Contains("Connected over USB");
+            using (SolidBrush dot = new SolidBrush(connected ? Color.FromArgb(60, 220, 110) : Color.FromArgb(90, 98, 112)))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.FillEllipse(dot, Width - 30, 14, 10, 10);
+            }
             Color titleColor = enabledCard ? Theme.Text : Theme.Muted;
             TextRenderer.DrawText(g, title, Theme.Big, new Rectangle(206, 22, Width - 206 - 130, 32), titleColor, TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
             TextRenderer.DrawText(g, subtitle, Theme.Body, new Rectangle(206, 56, Width - 206 - 130, 40), Theme.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak);

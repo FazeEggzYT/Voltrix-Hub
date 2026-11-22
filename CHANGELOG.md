@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.9.0 pre-release: Overlay + Look
+- New start-up screen: logo, name, what it is doing, and the names of the devices it found.
+- New Overlay page with three tabs: HUD, Crosshair and FPS.
+- HUD: a click-through overlay on top of your games. Place widgets in a 3x3 grid of screen squares by clicking the mock screen. Widgets: FPS, CPU, RAM, ping, clock, session timer, active profile, game running, Game Mode, mouse DPI.
+- HUD customisation: text size, opacity, distance from the edge, dark boxes or outlined text, bold, names on or off, text and name colours, four fonts, choose which screen, only show during a game.
+- 5 HUD templates (Minimal FPS, Competitive, Streamer, Full stats, Clean clock) plus 3 slots for your own.
+- Crosshair: 6 shapes, size, thickness, gap, centre dot, outline, 10 quick colours and a custom colour, opacity, move it left/right/up/down, choose the screen.
+- 6 crosshair templates plus 3 slots for your own.
+- Hotkeys: Ctrl+Alt+H toggles the HUD and Ctrl+Alt+C toggles the crosshair.
+- FPS counter using PresentMon (free tool). Needs the PresentMon file in the tools folder and VOLTRIX Hub running as administrator. The Overlay > FPS tab walks you through it.
+- UI revamp: 5 themes (Voltrix Blue, Midnight, Graphite, Forest, Crimson), your own accent colour, 4 fonts, accent bar on the selected sidebar item, connected dot on device cards.
+- Settings page rebuilt in sections with many more options: close hides to tray, show start-up screen, re-apply profile on start, refresh devices every 30 seconds, overlay hotkeys, reset all settings, open settings folder, restart now.
+- The Scan button is now Refresh devices.
+
 ## v0.8.0 pre-release: Sharing
 - Install VOLTRIX Hub from Settings: copies the app to your user folder, adds a Start Menu shortcut (and an optional desktop shortcut) and shows it in Windows Installed apps. No admin needed.
 - Uninstall from Settings or from Windows Installed apps. You choose whether to keep your settings and profiles.

@@ -17,6 +17,8 @@ namespace Voltrix
         DevicePage devicePage;
         MousePage mousePage;
         ProfilesPage profilesPage;
+        OverlayPage overlayPage;
+        NavButton navOverlay;
         UpdatesPage updatesPage;
         SettingsPage settingsPage;
         Label versionLabel;
@@ -28,8 +30,12 @@ namespace Voltrix
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern bool DestroyIcon(IntPtr handle);
 
-        public MainForm()
+        SplashForm splash;
+        Timer rescanTimer;
+
+        public MainForm(SplashForm splashForm)
         {
+            splash = splashForm;
             Text = AppInfo.Name + " " + AppInfo.Full;
             ClientSize = new Size(1000, 640);
             MinimumSize = new Size(820, 560);
@@ -39,7 +45,6 @@ namespace Voltrix
             Font = Theme.Body;
             DoubleBuffered = true;
 
-            SettingsStore.Load();
             appIcon = MakeIcon();
             Icon = appIcon;
 
@@ -54,6 +59,7 @@ namespace Voltrix
             devicePage = new DevicePage();
             mousePage = new MousePage();
             profilesPage = new ProfilesPage();
+            overlayPage = new OverlayPage();
             updatesPage = new UpdatesPage();
             settingsPage = new SettingsPage();
 
@@ -89,8 +95,16 @@ namespace Voltrix
             {
                 KeyHook.Install(this);
                 watcher.Start();
-                devicesPage.RunScan();
-                if (AppState.ActiveProfile.Length > 0)
+                if (AppState.Last != null)
+                {
+                    devicesPage.ShowResult(AppState.Last);
+                }
+                else
+                {
+                    devicesPage.RunScan();
+                }
+                Overlays.Apply();
+                if (AppState.ReapplyProfile && AppState.ActiveProfile.Length > 0)
                 {
                     Profile ap = ProfileStore.Load(AppState.ActiveProfile);
                     if (ap != null)
@@ -106,7 +120,23 @@ namespace Voltrix
                 {
                     Hide();
                 }
+                if (splash != null)
+                {
+                    splash.FadeAndClose();
+                    splash = null;
+                    Activate();
+                }
             };
+            rescanTimer = new Timer();
+            rescanTimer.Interval = 30000;
+            rescanTimer.Tick += delegate(object sender, EventArgs e)
+            {
+                if (AppState.AutoRescan && Visible && WindowState != FormWindowState.Minimized)
+                {
+                    devicesPage.RunScan();
+                }
+            };
+            rescanTimer.Start();
             SelectNav(navDevices);
             ShowPage(devicesPage);
         }
@@ -154,8 +184,9 @@ namespace Voltrix
 
             navDevices = MakeNav("Devices", "kbd", 84);
             navProfiles = MakeNav("Profiles", "users", 132);
-            navUpdates = MakeNav("Updates", "down", 180);
-            navSettings = MakeNav("Settings", "gear", 228);
+            navOverlay = MakeNav("Overlay", "grid", 180);
+            navUpdates = MakeNav("Updates", "down", 228);
+            navSettings = MakeNav("Settings", "gear", 276);
 
             Panel line = new Panel();
             line.Dock = DockStyle.Right;
@@ -181,6 +212,7 @@ namespace Voltrix
             SelectNav(b);
             if (b == navDevices) ShowPage(devicesPage);
             else if (b == navProfiles) ShowPage(profilesPage);
+            else if (b == navOverlay) ShowPage(overlayPage);
             else if (b == navUpdates) ShowPage(updatesPage);
             else ShowPage(settingsPage);
         }
@@ -189,6 +221,7 @@ namespace Voltrix
         {
             navDevices.Selected = active == navDevices;
             navProfiles.Selected = active == navProfiles;
+            navOverlay.Selected = active == navOverlay;
             navUpdates.Selected = active == navUpdates;
             navSettings.Selected = active == navSettings;
         }
@@ -209,7 +242,7 @@ namespace Voltrix
             ToolStripMenuItem open = new ToolStripMenuItem("Open " + AppInfo.Name);
             open.Click += delegate(object sender, EventArgs e) { RestoreFromTray(); };
             ToolStripMenuItem exit = new ToolStripMenuItem("Exit");
-            exit.Click += delegate(object sender, EventArgs e) { Close(); };
+            exit.Click += delegate(object sender, EventArgs e) { AppState.Exiting = true; Close(); };
             pauseItem = new ToolStripMenuItem(AppState.AssignmentsOn ? "Pause key assignments" : "Resume key assignments");
             pauseItem.Click += delegate(object sender, EventArgs e)
             {
@@ -250,8 +283,20 @@ namespace Voltrix
             }
         }
 
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (AppState.CloseToTray && !AppState.Exiting && e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                Hide();
+                return;
+            }
+            base.OnFormClosing(e);
+        }
+
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            Overlays.Shutdown();
             KeyHook.Uninstall();
             if (watcher != null)
             {

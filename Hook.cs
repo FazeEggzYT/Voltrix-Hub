@@ -47,6 +47,9 @@ namespace Voltrix
         static extern IntPtr GetModuleHandle(string name);
 
         [DllImport("user32.dll")]
+        static extern short GetAsyncKeyState(int vk);
+
+        [DllImport("user32.dll")]
         static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
 
         const int WH_KEYBOARD_LL = 13;
@@ -195,6 +198,19 @@ namespace Voltrix
                 swallowed.Add(vk);
                 int captured = vk;
                 sync.BeginInvoke(new MethodInvoker(delegate { cb(captured); }));
+                return true;
+            }
+
+            if (AppState.OverlayHotkeys && (vk == 0x48 || vk == 0x43)
+                && (GetAsyncKeyState(0x11) & 0x8000) != 0 && (GetAsyncKeyState(0x12) & 0x8000) != 0)
+            {
+                swallowed.Add(vk);
+                bool hudKey = vk == 0x48;
+                sync.BeginInvoke(new MethodInvoker(delegate
+                {
+                    if (hudKey) Overlays.ToggleHud();
+                    else Overlays.ToggleCross();
+                }));
                 return true;
             }
 
@@ -370,6 +386,7 @@ namespace Voltrix
                 return;
             }
             active = now;
+            AppState.GameStart = now == null ? DateTime.MinValue : DateTime.Now;
             Apply();
             string raw;
             if (found != null)

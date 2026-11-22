@@ -30,8 +30,8 @@ namespace Voltrix
 
         public DevicesPage()
         {
-            keyboard = new DeviceCard("PRO", "Logitech PRO keyboard. Press Scan to find it.", true, true);
-            mouse = new DeviceCard("G502 HERO", "Logitech G502 HERO mouse. Press Scan to find it.", false, false);
+            keyboard = new DeviceCard("PRO", "Logitech PRO keyboard.", true, true);
+            mouse = new DeviceCard("G502 HERO", "Logitech G502 HERO mouse.", false, false);
             mouse.ShowQuick = false;
             mouse.Opened += delegate(object sender, CardEventArgs e)
             {
@@ -48,7 +48,7 @@ namespace Voltrix
                 }
             };
 
-            scanButton = new VButton("Scan for devices", true);
+            scanButton = new VButton("Refresh devices", true);
             scanButton.Click += delegate(object sender, EventArgs e) { RunScan(); };
             copyButton = new VButton("Copy report", false);
             copyButton.Click += delegate(object sender, EventArgs e)
@@ -88,7 +88,7 @@ namespace Voltrix
         public void RunScan()
         {
             Cursor = Cursors.WaitCursor;
-            scanState.Text = "Scanning...";
+            scanState.Text = "Looking for your devices...";
             scanState.Refresh();
             ScanResult r;
             try
@@ -102,6 +102,13 @@ namespace Voltrix
                 r.Report = r.Summary;
             }
             AppState.Last = r;
+            ShowResult(r);
+            Cursor = Cursors.Default;
+        }
+
+        // Shows a scan result on the cards and in the report box.
+        public void ShowResult(ScanResult r)
+        {
             log.Text = r.Report;
             if (r.GHubRunning)
             {
@@ -121,7 +128,7 @@ namespace Voltrix
             }
             else
             {
-                keyboard.SetSubtitle("Not found. Plug in the keyboard and press Scan.");
+                keyboard.SetSubtitle("Not found. Plug in the keyboard and press Refresh.");
             }
             if (r.Mouse != null)
             {
@@ -131,9 +138,8 @@ namespace Voltrix
             else
             {
                 mouse.SetEnabled(false);
-                mouse.SetSubtitle("Not found. Plug in the mouse and press Scan.");
+                mouse.SetSubtitle("Not found. Plug in the mouse and press Refresh.");
             }
-            Cursor = Cursors.Default;
         }
 
         void DoLayout()

@@ -50,6 +50,17 @@ namespace Voltrix
                     }
                     Line(g, p, r, 7, 14, 17, 14);
                 }
+                else if (name == "grid")
+                {
+                    for (int gy = 0; gy < 3; gy++)
+                    {
+                        for (int gx = 0; gx < 3; gx++)
+                        {
+                            RectangleF q = Rc(r, 3 + gx * 6.5f, 3 + gy * 6.5f, 4.5f, 4.5f);
+                            g.DrawRectangle(p, q.X, q.Y, q.Width, q.Height);
+                        }
+                    }
+                }
                 else if (name == "users")
                 {
                     g.DrawEllipse(p, Rc(r, 6, 5, 6, 6));
