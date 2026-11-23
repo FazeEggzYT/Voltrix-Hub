@@ -5,6 +5,21 @@ A lightweight, custom Windows app for Logitech keyboards and mice. A clean alter
 Made for the Logitech PRO keyboard (UK layout) and the G502 HERO mouse. Status: **pre-release** (v0.9.0). Hardware features are being tested on real devices.
 
 <!-- Add screenshots here once taken: screenshot-devices.png, screenshot-lighting.png, screenshot-profiles.png -->
+<img width="550" height="335" alt="image" src="https://github.com/user-attachments/assets/1a5736ed-c716-4920-9765-f1c106a4c092" />
+<img width="567" height="974" alt="image" src="https://github.com/user-attachments/assets/36ac76b0-e198-4cc6-a390-49dcd67ab0f1" />
+<img width="593" height="977" alt="image" src="https://github.com/user-attachments/assets/fea5aeed-9dea-4225-9688-a0572426b410" />
+<img width="816" height="952" alt="image" src="https://github.com/user-attachments/assets/07902259-376f-4435-bc46-180231760f70" />
+<img width="612" height="978" alt="image" src="https://github.com/user-attachments/assets/b15d5e8b-e83e-4882-a28f-38defa9718a7" />
+<img width="65" height="32" alt="image" src="https://github.com/user-attachments/assets/e1d0646e-5bca-4521-bb04-3850d583aa68" />
+<img width="54" height="37" alt="image" src="https://github.com/user-attachments/assets/bf833fbf-b3b1-43f8-9400-a4d5629b743c" />
+<img width="813" height="984" alt="image" src="https://github.com/user-attachments/assets/f79a8955-bb9c-4097-8392-f737f7b8f754" />
+<img width="652" height="968" alt="image" src="https://github.com/user-attachments/assets/6b391c8e-3eab-4c56-a7bc-78b6828efae2" />
+
+
+
+
+
+
 
 ## Features
 - Device scanner (read-only) with a copyable report
